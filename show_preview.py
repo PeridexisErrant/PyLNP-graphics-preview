@@ -66,23 +66,37 @@ def open_tileset():
     # note:  this will be more complex once tileset previews etc are implemented
     return Image.open('CLA.png')
 
-def get_plan(plan=None):
+def get_plan(plan='random'):
     """Obviously a placeholder"""
     # TODO:  make this not a placeholder
-    return [[[200, 'DGRAY'], [183, 'BLACK'], [209, 'BROWN']],
-            [[',', 'BLUE'], ['O', 'BLACK'], [210, 'BROWN']],
-            [["'", 'RED'], [197, 'RED'], ['+', 'RED']]]
+    if plan == 'random':
+        import random
+        size, plan = 20, []
+        n = ['BLACK', 'BLUE', 'GREEN', 'CYAN', 'RED', 'MAGENTA', 'BROWN', 'LGRAY',
+             'DGRAY', 'LBLUE', 'LGREEN', 'LCYAN', 'LRED', 'LMAGENTA', 'YELLOW',
+             'WHITE']
+        for y in range(size):
+            a = []
+            plan.append(a)
+            for x in range(size):
+                a.append([random.randint(0, 255), random.choice(n),
+                          random.choice(n)])
+        return plan
+    return [[[17, 'DGRAY', ''], [19, 'LGRAY', ''], [209, 'BROWN', '']],
+            [[',', 'BLUE', ''], ['O', 'YELLOW', ''], [210, 'BROWN', '']],
+            [["'", 'RED', ''], [197, 'RED', ''], ['+', 'RED', '']]]
 
 def image_plan():
     """Return a plan to display with the selected graphics pack.
 
     Format:
-        A list of rows, each of which is a list of lists [char, color_name]
+        A list of rows, each of which is a list of lists
+            [char, fg_color_name, bg_color_name]
         'char' may be either a character, or it's ord
         color_name must be one of the names uses by DF, capitalised
 
-        An invalid char will be converted to 219 (window border)
-        An invalid color will be converted to 'BLACK'
+        An invalid or missing char will be converted to 219 (window border)
+        An invalid or missing color will be converted to 'BLACK'
 
         All tiles are converted to the ord of their chr, for later manipulation
     """
@@ -93,7 +107,9 @@ def image_plan():
     for row in plan:
         for cell in row:
             if not cell[1] in n:
-                cell[1] = 'BLACK'
+                cell[1] = 'WHITE'
+            if not cell[2] in n:
+                cell[2] = 'BLACK'
             tile = cell[0]
             if isinstance(tile, str):
                 try:
@@ -109,7 +125,7 @@ def image_plan():
     return plan
 
 
-def make_tile(tileset, ord_int=219, color=(0, 0, 0)):
+def make_tile(tileset, ord_int=219, fg_c=(0, 0, 0), bg_c=(0, 0, 0)):
     """Returns an image objectof the tile, colored.
 
     Arguments:
@@ -123,13 +139,17 @@ def make_tile(tileset, ord_int=219, color=(0, 0, 0)):
     Returns:
         Image object of the tile
     """
+    # Get the tile
     tile_x, tile_y = tuple(int(n/16) for n in tileset.size)
-    x = 16 * (ord_int % tile_x)
-    y = 16 * (ord_int // tile_y)
+    x = tile_x * (ord_int % 16)
+    y = tile_y * (ord_int // 16)
     tile = tileset.crop((x, y, x + tile_x, y + tile_y)).copy()
-    color_tile = Image.new('RGB', (tile_x , tile_y), color)
-    tile.paste(color_tile, None, tile)
-    tile.paste(color, None, tile)
+
+    # Add color
+    # TODO:  check that this works the same way as DF
+    tile.paste(fg_c, None, tile)
+    inverted = Image.eval(tile, lambda x:255-x)
+    tile.paste(bg_c, None, inverted)
     return tile.convert('RGB')
 
 
@@ -139,19 +159,18 @@ def make_image(tileset, plan):
     tileset = open_tileset()
     tile_x, tile_y = tuple(int(n/16) for n in tileset.size)
     preview = Image.new('RGB', (tile_x * len(plan[0]), tile_y * len(plan)),
-                        (0, 0, 0))
+                        (128, 0, 128))
     for y, row in enumerate(plan):
         for x, cell in enumerate(row):
-            char, color = cell[0], cell[1]
-            tile = make_tile(tileset, char, c[color])
-            box = (x, y, x + tile_x, y + tile_y)
+            char, fg_c, bg_c = cell[0], cell[1], cell[2]
+            tile = make_tile(tileset, char, c[fg_c], c[bg_c]).copy()
+            box = (x * tile_x, y * tile_y)
             preview.paste(tile, box)
     return preview
 
 
 class MyWindow(object):
     """Should show off a graphics preview."""
-    # tester class, to work on methods
     def __init__(self, parent):
         """Constructor for a *very* basic window."""
         self.root = parent
@@ -171,7 +190,7 @@ class MyWindow(object):
         self.preview = Canvas(
             width=PIL_image.size[0], height=PIL_image.size[1],
             highlightthickness=0, takefocus=False)
-        self.preview.create_image(27, 27, image=self.TK_image)
+        self.preview.create_image(0, 0, anchor='nw', image=self.TK_image)
 
 
 if __name__ == "__main__":
