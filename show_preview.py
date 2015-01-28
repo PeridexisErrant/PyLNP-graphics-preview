@@ -109,7 +109,7 @@ def image_plan():
     return plan
 
 
-def make_tile(tileset, ord_int=219, color='BLACK'):
+def make_tile(tileset, ord_int=219, color=(0, 0, 0)):
     """Returns an image objectof the tile, colored.
 
     Arguments:
@@ -126,8 +126,10 @@ def make_tile(tileset, ord_int=219, color='BLACK'):
     tile_x, tile_y = tuple(int(n/16) for n in tileset.size)
     x = 16 * (ord_int % tile_x)
     y = 16 * (ord_int // tile_y)
-    tile = tileset.crop((x, y, x + tile_x, y + tile_y))
-    # TODO:  add color to tile here, same way as DF
+    tile = tileset.crop((x, y, x + tile_x, y + tile_y)).copy()
+    color_tile = Image.new('RGB', (tile_x , tile_y), color)
+    tile.paste(color_tile, None, tile)
+    tile.paste(color, None, tile)
     return tile.convert('RGB')
 
 
