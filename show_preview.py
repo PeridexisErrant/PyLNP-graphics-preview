@@ -3,30 +3,25 @@
 """Testing a graphics preview canvas."""
 from __future__ import print_function, unicode_literals, absolute_import
 
-import os, sys
+import sys
 
 if sys.version_info[0] == 3:  # Alternate import names
     # pylint:disable=import-error
     from tkinter import *
     from tkinter.ttk import *
-    import tkinter.messagebox as messagebox
-    import tkinter.simpledialog as simpledialog
 else:
     # pylint:disable=import-error
     from Tkinter import *
     from ttk import *
-    import tkMessageBox as messagebox
-    import tkSimpleDialog as simpledialog
 
 try:  # PIL-compatible library (e.g. Pillow); used to load PNG images (optional)
     # pylint:disable=import-error,no-name-in-module
-    from PIL import Image, ImageTk
+    from PIL import Image
     has_PIL = True
 except ImportError:  # Some PIL installations live outside of the PIL package
     # pylint:disable=import-error,no-name-in-module
     try:
         import Image
-        import ImageTk
         has_PIL = True
     except ImportError:  # No PIL compatible library
         has_PIL = False
@@ -60,7 +55,7 @@ def get_colors(colorscheme=None):
          'DGRAY', 'LBLUE', 'LGREEN', 'LCYAN', 'LRED', 'LMAGENTA', 'YELLOW',
          'WHITE']
     return dict(zip(n, [tuple(l) for l in colors]))
-    
+
 def open_tileset():
     """Return image object for the requested tileset"""
     # note:  this will be more complex once tileset previews etc are implemented
@@ -72,13 +67,14 @@ def get_plan(plan='random'):
     if plan == 'random':
         import random
         size, plan = 20, []
-        n = ['BLACK', 'BLUE', 'GREEN', 'CYAN', 'RED', 'MAGENTA', 'BROWN', 'LGRAY',
+        n = ['BLACK', 'BLUE', 'GREEN', 'CYAN', 'RED', 'MAGENTA', 'BROWN',
+             'LGRAY',
              'DGRAY', 'LBLUE', 'LGREEN', 'LCYAN', 'LRED', 'LMAGENTA', 'YELLOW',
              'WHITE']
-        for y in range(size):
+        for _ in range(size):
             a = []
             plan.append(a)
-            for x in range(size):
+            for _ in range(size):
                 a.append([random.randint(0, 255), random.choice(n),
                           random.choice(n)])
         return plan
@@ -148,7 +144,7 @@ def make_tile(tileset, ord_int=219, fg_c=(0, 0, 0), bg_c=(0, 0, 0)):
     # Add color
     # TODO:  check that this works the same way as DF
     tile.paste(fg_c, None, tile)
-    inverted = Image.eval(tile, lambda x:255-x)
+    inverted = Image.eval(tile, lambda x: 255-x)
     tile.paste(bg_c, None, inverted)
     return tile.convert('RGB')
 
