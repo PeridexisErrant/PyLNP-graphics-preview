@@ -82,24 +82,32 @@ def get_plan(plan='random'):
             [[',', 'BLUE', ''], ['O', 'YELLOW', ''], [210, 'BROWN', '']],
             [["'", 'RED', ''], [197, 'RED', ''], ['+', 'RED', '']]]
 
-def image_plan():
+def image_plan(plan=None, text=False):
     """Return a plan to display with the selected graphics pack.
 
     Format:
-        A list of rows, each of which is a list of lists
-            [char, fg_color_name, bg_color_name]
-        'char' may be either a character, or it's ord
-        color_name must be one of the names uses by DF, capitalised
+        if text:
+            A string, lines separated by newlines (for displaying font tiles)
+        else:
+            A list of rows, each of which is a list of lists
+                [char, fg_color_name, bg_color_name]
+            'char' may be either a character, or it's ord
+            color_name must be one of the names uses by DF, capitalised
 
         An invalid or missing char will be converted to 219 (window border)
         An invalid or missing color will be converted to 'BLACK'
 
         All tiles are converted to the ord of their chr, for later manipulation
     """
+    if plan is None:
+        plan = get_plan()
+    if text and isinstance(plan, str):
+        plan = [zip(list(line), ['WHITE']*len(plan), ['BLACK']*len(plan))
+                for line in plan.split('\n')]
+    # validate plan
     n = ['BLACK', 'BLUE', 'GREEN', 'CYAN', 'RED', 'MAGENTA', 'BROWN', 'LGRAY',
          'DGRAY', 'LBLUE', 'LGREEN', 'LCYAN', 'LRED', 'LMAGENTA', 'YELLOW',
          'WHITE']
-    plan = get_plan()
     for row in plan:
         for cell in row:
             if not cell[1] in n:
@@ -154,7 +162,8 @@ def make_image(tileset, plan):
     c = get_colors()
     tileset = open_tileset()
     tile_x, tile_y = tuple(int(n/16) for n in tileset.size)
-    preview = Image.new('RGB', (tile_x * len(plan[0]), tile_y * len(plan)),
+    image_x, image_y = max([len(r) for r in plan]), len(plan)
+    preview = Image.new('RGB', (tile_x * image_x, tile_y * image_y),
                         (128, 0, 128))
     for y, row in enumerate(plan):
         for x, cell in enumerate(row):
