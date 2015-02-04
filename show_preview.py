@@ -61,7 +61,7 @@ def open_tileset():
     # note:  this will be more complex once tileset previews etc are implemented
     return Image.open('CLA.png')
 
-def get_plan(plan='random'):
+def get_plan(plan=None):
     """Obviously a placeholder"""
     # TODO:  make this not a placeholder
     if plan == 'random':
@@ -78,11 +78,13 @@ def get_plan(plan='random'):
                 a.append([random.randint(0, 255), random.choice(n),
                           random.choice(n)])
         return plan
-    return [[[17, 'DGRAY', ''], [19, 'LGRAY', ''], [209, 'BROWN', '']],
-            [[',', 'BLUE', ''], ['O', 'YELLOW', ''], [210, 'BROWN', '']],
-            [["'", 'RED', ''], [197, 'RED', ''], ['+', 'RED', '']]]
+    if plan == 'small':
+        return [[[17, 'DGRAY', ''], [19, 'LGRAY', ''], [209, 'BROWN', '']],
+                [[',', 'BLUE', ''], ['O', 'YELLOW', ''], [210, 'BROWN', '']],
+                [["'", 'RED', ''], [197, 'RED', ''], ['+', 'RED', '']]]
+    return 'WARNING:\nPlan not specified!\nShowing this text instead.'
 
-def image_plan(plan=None, text=False):
+def image_plan(plan=None):
     """Return a plan to display with the selected graphics pack.
 
     Format:
@@ -99,11 +101,12 @@ def image_plan(plan=None, text=False):
 
         All tiles are converted to the ord of their chr, for later manipulation
     """
-    if plan is None:
-        plan = get_plan()
-    if text and isinstance(plan, str):
-        plan = [zip(list(line), ['WHITE']*len(plan), ['BLACK']*len(plan))
+    if isinstance(plan, str):
+        plan = [zip(list(line), ['WHITE']*len(line), ['BLACK']*len(line))
                 for line in plan.split('\n')]
+    if not (plan and isinstance(plan, list) and
+            all([all([len(x)==3 for x in y]) for y in plan])):
+        plan = get_plan()
     # validate plan
     n = ['BLACK', 'BLUE', 'GREEN', 'CYAN', 'RED', 'MAGENTA', 'BROWN', 'LGRAY',
          'DGRAY', 'LBLUE', 'LGREEN', 'LCYAN', 'LRED', 'LMAGENTA', 'YELLOW',
@@ -114,22 +117,19 @@ def image_plan(plan=None, text=False):
                 cell[1] = 'WHITE'
             if not cell[2] in n:
                 cell[2] = 'BLACK'
-            tile = cell[0]
-            if isinstance(tile, str):
+            if isinstance(cell[0], str):
                 try:
-                    tile = ord(tile)
+                    cell[0] = ord(cell[0])
                 except:
-                    tile = 219
-            if isinstance(tile, int):
-                if not 0 <= tile <= 255:
-                    tile = 219
+                    cell[0] = 219
+            if isinstance(cell[0], int):
+                if not 0 <= cell[0] <= 255:
+                    cell[0] = 219
             else:
-                tile = 219
-            cell[0] = tile
+                cell[0] = 219
     return plan
 
-
-def make_tile(tileset, ord_int=219, fg_c=(0, 0, 0), bg_c=(0, 0, 0)):
+def make_tile(tileset, ord_int=219, fg_c=(255, 255, 255), bg_c=(0, 0, 0)):
     """Returns an image objectof the tile, colored.
 
     Arguments:
@@ -137,25 +137,24 @@ def make_tile(tileset, ord_int=219, fg_c=(0, 0, 0), bg_c=(0, 0, 0)):
             the Image object of the tileset to use
         ord_int:
             the ord integer of the character to use
-        color:
-            a RGB color tuple, illegal
+        fg_c:
+            a RGB color tuple for the tile foreground
+        bg_c:
+            a RGB color tuple for the tile background
 
     Returns:
         Image object of the tile
     """
-    # Get the tile
     tile_x, tile_y = tuple(int(n/16) for n in tileset.size)
     x = tile_x * (ord_int % 16)
     y = tile_y * (ord_int // 16)
     tile = tileset.crop((x, y, x + tile_x, y + tile_y)).copy()
-
-    # Add color
-    # TODO:  check that this works the same way as DF
+    # This is correct for tilesets without color
+    # Colored graphics tiles work differently; that's a non-issue for now
     tile.paste(fg_c, None, tile)
     inverted = Image.eval(tile, lambda x: 255-x)
     tile.paste(bg_c, None, inverted)
     return tile.convert('RGB')
-
 
 def make_image(tileset, plan):
     """Returns an image object of the whole preview."""
@@ -188,7 +187,7 @@ class MyWindow(object):
     def draw_preview(self):
         """Draws the canvas and image."""
         tileset = open_tileset()
-        plan = image_plan()
+        plan = image_plan(get_plan('random'))
         PIL_image = make_image(tileset, plan)
         PIL_image.save('preview.gif', format='GIF')
         self.TK_image = PhotoImage(file='preview.gif')
